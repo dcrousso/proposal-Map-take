@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="stylesheet" href="./spec.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+<script src="./spec.js"></script>
+<pre class="metadata">
+title: Map.prototype.take and WeakMap.prototype.take
+stage: 0
+contributors: Devin Rousso
+</pre>
+
+<emu-intro id="sec-map-take-intro">
+  <h1>Introduction</h1>
+  <p>This proposal adds `take` methods to `Map.prototype` and `WeakMap.prototype`. A call to `take(_key_)` removes the entry for _key_ (if any) and returns the value that was associated with it, or *undefined* if the map had no entry for _key_. It is the atomic combination of `get(_key_)` followed by `delete(_key_)`, expressed as a single lookup.</p>
+  <p>The new methods are inserted into the alphabetical listings of the existing prototype clauses: `Map.prototype.take` between <emu-xref href="#sec-map.prototype.set">`Map.prototype.set`</emu-xref> and `Map.prototype.values`, and `WeakMap.prototype.take` after <emu-xref href="#sec-weakmap.prototype.set">`WeakMap.prototype.set`</emu-xref>. The surrounding, unchanged clauses are elided here.</p>
+  <emu-note type="editor">
+    <p>The algorithms below deliberately mirror the existing <emu-xref href="#sec-map.prototype.get">`Map.prototype.get`</emu-xref> / <emu-xref href="#sec-map.prototype.delete">`Map.prototype.delete`</emu-xref> and <emu-xref href="#sec-weakmap.prototype.get">`WeakMap.prototype.get`</emu-xref> / <emu-xref href="#sec-weakmap.prototype.delete">`WeakMap.prototype.delete`</emu-xref> pairs so that `take` composes their observable behaviour without introducing any new abstract operations.</p>
+  </emu-note>
+</emu-intro>
+
+<emu-clause id="sec-map-objects-take">
+  <h1>Map Objects</h1>
+
+  <emu-clause id="sec-properties-of-the-map-prototype-object-take">
+    <h1>Properties of the Map Prototype Object</h1>
+
+    <emu-clause id="sec-map.prototype.take" type="built-in function">
+      <h1>Map.prototype.take ( _key_ )</h1>
+      <p>This method performs the following steps when called:</p>
+      <emu-alg>
+        1. Let _map_ be the *this* value.
+        1. Perform ? RequireInternalSlot(_map_, [[MapData]]).
+        1. Set _key_ to CanonicalizeKeyedCollectionKey(_key_).
+        1. For each Record { [[Key]], [[Value]] } _entry_ of _map_.[[MapData]], do
+          1. If _entry_.[[Key]] is not ~empty~ and SameValue(_entry_.[[Key]], _key_) is *true*, then
+            1. Let _value_ be _entry_.[[Value]].
+            1. Set _entry_.[[Key]] to ~empty~.
+            1. Set _entry_.[[Value]] to ~empty~.
+            1. Return _value_.
+        1. Return *undefined*.
+      </emu-alg>
+      <emu-note>
+        <p>`take` returns *undefined* both when _key_ was absent and when _key_ was present with the value *undefined*. As with `get`, use <emu-xref href="#sec-map.prototype.has">`has`</emu-xref> beforehand to distinguish these cases.</p>
+      </emu-note>
+      <emu-note>
+        <p>The value ~empty~ is used as a specification device to indicate that an entry has been deleted. Actual implementations may take other actions such as physically removing the entry from internal data structures.</p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-weakmap-objects-take">
+  <h1>WeakMap Objects</h1>
+
+  <emu-clause id="sec-properties-of-the-weakmap-prototype-object-take">
+    <h1>Properties of the WeakMap Prototype Object</h1>
+
+    <emu-clause id="sec-weakmap.prototype.take" type="built-in function">
+      <h1>WeakMap.prototype.take ( _key_ )</h1>
+      <p>This method performs the following steps when called:</p>
+      <emu-alg>
+        1. Let _weakMap_ be the *this* value.
+        1. Perform ? RequireInternalSlot(_weakMap_, [[WeakMapData]]).
+        1. If CanBeHeldWeakly(_key_) is *false*, return *undefined*.
+        1. For each Record { [[Key]], [[Value]] } _entry_ of _weakMap_.[[WeakMapData]], do
+          1. If _entry_.[[Key]] is not ~empty~ and SameValue(_entry_.[[Key]], _key_) is *true*, then
+            1. Let _value_ be _entry_.[[Value]].
+            1. Set _entry_.[[Key]] to ~empty~.
+            1. Set _entry_.[[Value]] to ~empty~.
+            1. Return _value_.
+        1. Return *undefined*.
+      </emu-alg>
+      <emu-note>
+        <p>A value that cannot be held weakly can never have been used as a key, so `take` returns *undefined* for such _key_ without inspecting [[WeakMapData]], matching <emu-xref href="#sec-weakmap.prototype.get">`WeakMap.prototype.get`</emu-xref>.</p>
+      </emu-note>
+      <emu-note>
+        <p>The value ~empty~ is used as a specification device to indicate that an entry has been deleted. Actual implementations may take other actions such as physically removing the entry from internal data structures.</p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
